@@ -5,33 +5,55 @@ import os
 
 api_server = "http://static-maps.yandex.ru/1.x/"
 
-lon = "-74.000166"
-lat = "40.712524"
-delta = "0.02"
 
-params = {
-    "ll": ",".join([lon, lat]),
-    "spn": ",".join([delta, delta]),
-    "l": "map"
-}
+class Map:
+    def __init__(self):
+        self.lon = "-74.000166"
+        self.lat = "40.712524"
+        self.z = "16"
 
-response = requests.get(api_server, params=params)
+    def create_map(self, z1):
+        self.z = eval(f"{self.z}+{z1}")
+        if self.z < 0:
+            self.z = 0
+        elif self.z > 17:
+            self.z = 17
 
-if not response:
-    print("Ошибка выполнения запроса:")
-    print(api_server)
-    print("Http статус:", response.status_code, "(", response.reason, ")")
-    sys.exit(1)
+        params = {
+            "ll": ",".join([self.lon, self.lat]),
+            "l": "map",
+            "z": self.z
+        }
 
-map_file = "map.png"
-with open(map_file, "wb") as file:
-    file.write(response.content)
+        response = requests.get(api_server, params=params)
+
+        if not response:
+            print("Ошибка выполнения запроса:")
+            print(api_server)
+            print("Http статус:", response.status_code, "(", response.reason, ")")
+            sys.exit(1)
+
+        map_file = "map.png"
+        with open(map_file, "wb") as file:
+            file.write(response.content)
+
 
 pygame.init()
 screen = pygame.display.set_mode((600, 450))
-while pygame.event.wait().type != pygame.QUIT:
-    screen.blit(pygame.image.load(map_file), (0, 0))
-    pygame.display.flip()
+running = True
+map = Map()
+map.create_map("0")
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_PAGEUP:
+                map.create_map("1")
+            elif event.key == pygame.K_PAGEDOWN:
+                map.create_map("-1")
+        screen.blit(pygame.image.load("map.png"), (0, 0))
+        pygame.display.flip()
 pygame.quit()
 
-os.remove(map_file)
+os.remove("map.png")
